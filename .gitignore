@@ -1,0 +1,22 @@
+# Ignorar archivos de variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Dependencias
+node_modules/
+npm-debug.log*
+
+# Build
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema
+.DS_Store
+Thumbs.db

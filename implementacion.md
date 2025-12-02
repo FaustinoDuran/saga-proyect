@@ -7,6 +7,10 @@ Crear la siguiente estructura de proyecto siguiendo principios SOLID y DRY:
 ```
 saga-proyect/
 ├── shared/
+│   ├── types/
+│   │   ├── producto.types.ts
+│   │   ├── transaccion.types.ts
+│   │   └── response.types.ts
 │   └── utils/
 │       └── latencia.util.ts
 ├── ms-catalogo/
@@ -15,6 +19,8 @@ saga-proyect/
 │   │   │   └── catalogo.controller.ts
 │   │   ├── services/
 │   │   │   └── catalogo.service.ts
+│   │   ├── routes/
+│   │   │   └── catalogo.routes.ts
 │   │   └── index.ts
 │   ├── package.json
 │   └── tsconfig.json
@@ -24,6 +30,8 @@ saga-proyect/
 │   │   │   └── pagos.controller.ts
 │   │   ├── services/
 │   │   │   └── pagos.service.ts
+│   │   ├── routes/
+│   │   │   └── pagos.routes.ts
 │   │   └── index.ts
 │   ├── package.json
 │   └── tsconfig.json
@@ -33,6 +41,8 @@ saga-proyect/
 │   │   │   └── inventario.controller.ts
 │   │   ├── services/
 │   │   │   └── inventario.service.ts
+│   │   ├── routes/
+│   │   │   └── inventario.routes.ts
 │   │   └── index.ts
 │   ├── package.json
 │   └── tsconfig.json
@@ -42,6 +52,8 @@ saga-proyect/
 │   │   │   └── compras.controller.ts
 │   │   ├── services/
 │   │   │   └── compras.service.ts
+│   │   ├── routes/
+│   │   │   └── compras.routes.ts
 │   │   └── index.ts
 │   ├── package.json
 │   └── tsconfig.json
@@ -52,6 +64,8 @@ saga-proyect/
     │   ├── services/
     │   │   ├── saga.service.ts
     │   │   └── microservices.service.ts
+    │   ├── routes/
+    │   │   └── saga.routes.ts
     │   ├── config/
     │   │   └── services.config.ts
     │   └── index.ts
@@ -60,6 +74,14 @@ saga-proyect/
 ```
 
 **Nota**: La carpeta `shared/` contiene código compartido entre todos los microservicios, aplicando el principio DRY.
+- `shared/types/` → Tipos e interfaces TypeScript reutilizables
+- `shared/utils/` → Utilidades y funciones helper comunes
+
+**Arquitectura de capas en cada microservicio:**
+- `controllers/` → Maneja peticiones HTTP y validaciones
+- `services/` → Contiene la lógica de negocio
+- `routes/` → Define las rutas y conecta con los controladores
+- `index.ts` → Punto de entrada, configura Express y middlewares
 
 ---
 
@@ -70,15 +92,101 @@ saga-proyect/
 ```bash
 mkdir saga-proyect
 cd saga-proyect
-mkdir -p shared/utils
-mkdir -p ms-catalogo/src/{controllers,services}
-mkdir -p ms-pagos/src/{controllers,services}
-mkdir -p ms-inventario/src/{controllers,services}
-mkdir -p ms-compras/src/{controllers,services}
-mkdir -p orquestador/src/{controllers,services,config}
+mkdir -p shared/{types,utils}
+mkdir -p ms-catalogo/src/{controllers,services,routes}
+mkdir -p ms-pagos/src/{controllers,services,routes}
+mkdir -p ms-inventario/src/{controllers,services,routes}
+mkdir -p ms-compras/src/{controllers,services,routes}
+mkdir -p orquestador/src/{controllers,services,routes,config}
 ```
 
-### 2.2. Crear utilidad compartida
+### 2.2. Crear tipos compartidos
+
+#### Archivo: `shared/types/producto.types.ts`
+
+```typescript
+/**
+ * Tipos relacionados con productos
+ */
+export interface Producto {
+  id: number;
+  nombre: string;
+  precio: number;
+  stock?: number;
+  descripcion?: string;
+}
+
+export interface ProductoDetalle extends Producto {
+  categoria?: string;
+  marca?: string;
+}
+```
+
+#### Archivo: `shared/types/transaccion.types.ts`
+
+```typescript
+/**
+ * Tipos relacionados con transacciones
+ */
+export interface TransaccionPago {
+  transaccionId: string;
+  monto: number;
+  metodoPago: string;
+  usuario: string;
+  timestamp: string;
+}
+
+export interface TransaccionInventario {
+  productoId: number;
+  cantidad: number;
+  stockRestante?: number;
+}
+
+export interface TransaccionCompra {
+  compraId: string;
+  usuario: string;
+  productoId: number;
+  cantidad: number;
+  monto: number;
+  timestamp: string;
+}
+
+export interface TransaccionCompletada {
+  servicio: 'pagos' | 'inventario' | 'compras';
+  datos: any;
+}
+```
+
+#### Archivo: `shared/types/response.types.ts`
+
+```typescript
+/**
+ * Tipos para respuestas HTTP estandarizadas
+ */
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  data?: T;
+  error?: string;
+  timestamp: string;
+}
+
+export interface SagaResponse {
+  success: boolean;
+  message: string;
+  error?: string;
+  detalles: {
+    producto: string;
+    cantidad: number;
+    montoTotal?: number;
+    pagoId?: string;
+    compraId?: string;
+    transaccionesRevertidas?: number;
+  };
+}
+```
+
+### 2.3. Crear utilidad compartida
 
 Crear el archivo `shared/utils/latencia.util.ts`:
 
@@ -98,19 +206,72 @@ export class LatenciaUtil {
 }
 ```
 
-### 2.3. Inicializar cada microservicio
+### 2.4. Inicializar cada microservicio
 
 Repetir para cada carpeta (ms-catalogo, ms-pagos, ms-inventario, ms-compras, orquestador):
 
 ```bash
 cd ms-catalogo
 npm init -y
-npm install express cors
+npm install express cors dotenv
 npm install -D typescript @types/express @types/node @types/cors ts-node nodemon
 npx tsc --init
 ```
 
-### 2.4. Configurar TypeScript
+### 2.4b. Crear archivos .env
+
+Cada microservicio debe tener su archivo `.env` con sus variables de entorno:
+
+**ms-catalogo/.env:**
+```env
+PORT=3001
+NODE_ENV=development
+SERVICE_NAME=ms-catalogo
+```
+
+**ms-pagos/.env:**
+```env
+PORT=3002
+NODE_ENV=development
+SERVICE_NAME=ms-pagos
+```
+
+**ms-inventario/.env:**
+```env
+PORT=3003
+NODE_ENV=development
+SERVICE_NAME=ms-inventario
+```
+
+**ms-compras/.env:**
+```env
+PORT=3004
+NODE_ENV=development
+SERVICE_NAME=ms-compras
+```
+
+**orquestador/.env:**
+```env
+PORT=3000
+NODE_ENV=development
+SERVICE_NAME=orquestador
+
+# URLs de los microservicios
+CATALOGO_URL=http://localhost:3001
+PAGOS_URL=http://localhost:3002
+INVENTARIO_URL=http://localhost:3003
+COMPRAS_URL=http://localhost:3004
+```
+
+**⚠️ Importante:** Agregar `.env` al `.gitignore` para no subir variables sensibles al repositorio:
+
+```bash
+# En la raíz del proyecto
+echo ".env" >> .gitignore
+echo "*/.env" >> .gitignore
+```
+
+### 2.5. Configurar TypeScript
 
 Editar `tsconfig.json` en cada microservicio para permitir importar desde `shared/`:
 
@@ -138,7 +299,7 @@ Editar `tsconfig.json` en cada microservicio para permitir importar desde `share
 
 **Nota importante**: La configuración de `rootDir`, `baseUrl` y `paths` permite importar el código compartido usando `@shared/` o rutas relativas.
 
-### 2.5. Agregar scripts en package.json
+### 2.6. Agregar scripts en package.json
 
 En cada `package.json`, agregar los scripts:
 
@@ -156,30 +317,75 @@ En cada `package.json`, agregar los scripts:
 
 ---
 
-## Paso 3: Utilidad Compartida (Carpeta shared/)
+## Paso 3: Código Compartido (Carpeta shared/)
 
 ### ¿Por qué una carpeta compartida?
 
-Aplicando el principio **DRY (Don't Repeat Yourself)**, creamos una carpeta `shared/` en la raíz del proyecto que contiene código reutilizable por todos los microservicios.
+Aplicando el principio **DRY (Don't Repeat Yourself)**, creamos una carpeta `shared/` con:
+- **shared/types/** → Tipos e interfaces TypeScript reutilizables
+- **shared/utils/** → Utilidades y funciones helper comunes
 
 **Ventajas:**
-- ✅ **Sin duplicación**: Una sola implementación de `LatenciaUtil`
+- ✅ **Sin duplicación**: Definiciones únicas
+- ✅ **Type Safety**: TypeScript detecta errores de tipos
 - ✅ **Mantenibilidad**: Cambios en un solo lugar
-- ✅ **Consistencia**: Todos los servicios usan la misma lógica
-- ✅ **Escalabilidad**: Fácil agregar más utilidades compartidas
+- ✅ **Consistencia**: Todos usan las mismas definiciones
+
+### Tipos Compartidos
+
+Los tipos garantizan que todos los servicios usen las mismas estructuras de datos:
+
+```typescript
+// shared/types/producto.types.ts
+export interface Producto {
+  id: number;
+  nombre: string;
+  precio: number;
+  stock?: number;
+  descripcion?: string;
+}
+```
+
+**Beneficio:** Si cambias `Producto`, TypeScript marca errores en TODOS los lugares que deben actualizarse.
 
 ### Uso en cada microservicio
 
-Cada microservicio importa la utilidad compartida con una ruta relativa:
-
 ```typescript
+// Importar tipos
+import { Producto } from '../../../shared/types/producto.types';
+import { ApiResponse } from '../../../shared/types/response.types';
+
+// Importar utilidades
 import { LatenciaUtil } from '../../../shared/utils/latencia.util';
 ```
 
-Alternativamente, con la configuración de paths en `tsconfig.json`, se podría usar:
+Con la configuración de paths en `tsconfig.json`, también puedes usar:
 
 ```typescript
+import { Producto } from '@shared/types/producto.types';
 import { LatenciaUtil } from '@shared/utils/latencia.util';
+```
+
+### Variables de Entorno (.env)
+
+Cada microservicio usa su propio archivo `.env` para configurar:
+- **Puerto del servicio**
+- **Nombre del servicio** (para logs)
+- **URLs de otros servicios** (en el orquestador)
+- **Entorno de ejecución** (development, production)
+
+**Ventajas:**
+- ✅ Fácil cambiar configuración sin modificar código
+- ✅ Diferentes configuraciones por ambiente (dev, staging, prod)
+- ✅ No exponer información sensible en el código
+- ✅ Cada servicio es independiente y configurable
+
+**Ejemplo de uso:**
+```typescript
+dotenv.config(); // Carga el archivo .env
+
+const PORT = process.env.PORT || 3001; // Usa variable de entorno o valor por defecto
+console.log(`[${process.env.SERVICE_NAME}] Corriendo...`);
 ```
 
 ---
@@ -189,11 +395,13 @@ import { LatenciaUtil } from '@shared/utils/latencia.util';
 ### Archivo: `ms-catalogo/src/services/catalogo.service.ts`
 
 ```typescript
+import { Producto } from '../../../shared/types/producto.types';
+
 /**
  * Servicio que gestiona la lógica de negocio del catálogo
  */
 export class CatalogoService {
-  private productos = [
+  private productos: Producto[] = [
     { id: 1, nombre: 'Laptop', precio: 1200 },
     { id: 2, nombre: 'Mouse', precio: 25 },
     { id: 3, nombre: 'Teclado', precio: 75 },
@@ -204,7 +412,7 @@ export class CatalogoService {
   /**
    * Genera un producto aleatorio con información completa
    */
-  obtenerProductoAleatorio() {
+  obtenerProductoAleatorio(): Producto {
     const productoAleatorio = this.productos[
       Math.floor(Math.random() * this.productos.length)
     ];
@@ -219,7 +427,7 @@ export class CatalogoService {
   /**
    * Obtiene un producto por ID (para este TP, retorna uno aleatorio)
    */
-  obtenerProductoPorId(id: number) {
+  obtenerProductoPorId(id: number): Producto {
     return this.obtenerProductoAleatorio();
   }
 }
@@ -231,6 +439,8 @@ export class CatalogoService {
 import { Request, Response } from 'express';
 import { CatalogoService } from '../services/catalogo.service';
 import { LatenciaUtil } from '../../../shared/utils/latencia.util';
+import { ApiResponse } from '../../../shared/types/response.types';
+import { Producto } from '../../../shared/types/producto.types';
 
 /**
  * Controlador que maneja las peticiones HTTP del catálogo
@@ -256,21 +466,45 @@ export class CatalogoController {
       
       console.log(`[ms-catalogo] Producto solicitado: ${producto.nombre}`);
       
-      // Siempre retorna 200
-      res.status(200).json({
+      const response: ApiResponse<Producto> = {
         success: true,
+        message: 'Producto obtenido exitosamente',
         data: producto,
         timestamp: new Date().toISOString()
-      });
+      };
+      
+      res.status(200).json(response);
     } catch (error) {
       console.error('[ms-catalogo] Error:', error);
-      res.status(500).json({
+      
+      const errorResponse: ApiResponse = {
         success: false,
-        message: 'Error interno del servidor'
-      });
+        message: 'Error interno del servidor',
+        timestamp: new Date().toISOString()
+      };
+      
+      res.status(500).json(errorResponse);
     }
   };
 }
+```
+
+### Archivo: `ms-catalogo/src/routes/catalogo.routes.ts`
+
+```typescript
+import { Router } from 'express';
+import { CatalogoController } from '../controllers/catalogo.controller';
+
+/**
+ * Configuración de rutas del microservicio de catálogo
+ */
+const router = Router();
+const catalogoController = new CatalogoController();
+
+// Rutas del catálogo
+router.get('/producto/:id?', catalogoController.obtenerProducto);
+
+export default router;
 ```
 
 ### Archivo: `ms-catalogo/src/index.ts`
@@ -278,26 +512,33 @@ export class CatalogoController {
 ```typescript
 import express from 'express';
 import cors from 'cors';
-import { CatalogoController } from './controllers/catalogo.controller';
+import dotenv from 'dotenv';
+import catalogoRoutes from './routes/catalogo.routes';
+
+// Cargar variables de entorno
+dotenv.config();
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Inicializar controlador
-const catalogoController = new CatalogoController();
-
 // Rutas
-app.get('/producto/:id?', catalogoController.obtenerProducto);
+app.use('/', catalogoRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`✅ [ms-catalogo] Corriendo en puerto ${PORT}`);
+  console.log(`✅ [${process.env.SERVICE_NAME}] Corriendo en puerto ${PORT}`);
 });
 ```
+
+**¿Por qué separar las rutas?**
+- ✅ **Separación de responsabilidades**: `index.ts` solo configura Express
+- ✅ **Escalabilidad**: Fácil agregar más rutas sin saturar `index.ts`
+- ✅ **Testabilidad**: Puedes testear las rutas de forma aislada
+- ✅ **Mantenibilidad**: Código más organizado y fácil de leer
 
 ---
 
@@ -426,30 +667,49 @@ export class PagosController {
 }
 ```
 
+### Archivo: `ms-pagos/src/routes/pagos.routes.ts`
+
+```typescript
+import { Router } from 'express';
+import { PagosController } from '../controllers/pagos.controller';
+
+/**
+ * Configuración de rutas del microservicio de pagos
+ */
+const router = Router();
+const pagosController = new PagosController();
+
+// Rutas de pagos
+router.post('/transaccion', pagosController.procesarTransaccion);
+router.post('/compensar', pagosController.compensar);
+
+export default router;
+```
+
 ### Archivo: `ms-pagos/src/index.ts`
 
 ```typescript
 import express from 'express';
 import cors from 'cors';
-import { PagosController } from './controllers/pagos.controller';
+import dotenv from 'dotenv';
+import pagosRoutes from './routes/pagos.routes';
+
+// Cargar variables de entorno
+dotenv.config();
 
 const app = express();
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Inicializar controlador
-const pagosController = new PagosController();
-
 // Rutas
-app.post('/transaccion', pagosController.procesarTransaccion);
-app.post('/compensar', pagosController.compensar);
+app.use('/', pagosRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`✅ [ms-pagos] Corriendo en puerto ${PORT}`);
+  console.log(`✅ [${process.env.SERVICE_NAME}] Corriendo en puerto ${PORT}`);
 });
 ```
 
@@ -583,30 +843,49 @@ export class InventarioController {
 }
 ```
 
+### Archivo: `ms-inventario/src/routes/inventario.routes.ts`
+
+```typescript
+import { Router } from 'express';
+import { InventarioController } from '../controllers/inventario.controller';
+
+/**
+ * Configuración de rutas del microservicio de inventario
+ */
+const router = Router();
+const inventarioController = new InventarioController();
+
+// Rutas de inventario
+router.post('/transaccion', inventarioController.procesarTransaccion);
+router.post('/compensar', inventarioController.compensar);
+
+export default router;
+```
+
 ### Archivo: `ms-inventario/src/index.ts`
 
 ```typescript
 import express from 'express';
 import cors from 'cors';
-import { InventarioController } from './controllers/inventario.controller';
+import dotenv from 'dotenv';
+import inventarioRoutes from './routes/inventario.routes';
+
+// Cargar variables de entorno
+dotenv.config();
 
 const app = express();
-const PORT = 3003;
+const PORT = process.env.PORT || 3003;
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Inicializar controlador
-const inventarioController = new InventarioController();
-
 // Rutas
-app.post('/transaccion', inventarioController.procesarTransaccion);
-app.post('/compensar', inventarioController.compensar);
+app.use('/', inventarioRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`✅ [ms-inventario] Corriendo en puerto ${PORT}`);
+  console.log(`✅ [${process.env.SERVICE_NAME}] Corriendo en puerto ${PORT}`);
 });
 ```
 
@@ -740,30 +1019,49 @@ export class ComprasController {
 }
 ```
 
+### Archivo: `ms-compras/src/routes/compras.routes.ts`
+
+```typescript
+import { Router } from 'express';
+import { ComprasController } from '../controllers/compras.controller';
+
+/**
+ * Configuración de rutas del microservicio de compras
+ */
+const router = Router();
+const comprasController = new ComprasController();
+
+// Rutas de compras
+router.post('/transaccion', comprasController.procesarTransaccion);
+router.post('/compensar', comprasController.compensar);
+
+export default router;
+```
+
 ### Archivo: `ms-compras/src/index.ts`
 
 ```typescript
 import express from 'express';
 import cors from 'cors';
-import { ComprasController } from './controllers/compras.controller';
+import dotenv from 'dotenv';
+import comprasRoutes from './routes/compras.routes';
+
+// Cargar variables de entorno
+dotenv.config();
 
 const app = express();
-const PORT = 3004;
+const PORT = process.env.PORT || 3004;
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Inicializar controlador
-const comprasController = new ComprasController();
-
 // Rutas
-app.post('/transaccion', comprasController.procesarTransaccion);
-app.post('/compensar', comprasController.compensar);
+app.use('/', comprasRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`✅ [ms-compras] Corriendo en puerto ${PORT}`);
+  console.log(`✅ [${process.env.SERVICE_NAME}] Corriendo en puerto ${PORT}`);
 });
 ```
 
@@ -774,14 +1072,20 @@ app.listen(PORT, () => {
 ### Archivo: `orquestador/src/config/services.config.ts`
 
 ```typescript
+import dotenv from 'dotenv';
+
+// Cargar variables de entorno
+dotenv.config();
+
 /**
  * Configuración centralizada de las URLs de los microservicios
+ * Lee desde variables de entorno con valores por defecto
  */
 export const SERVICES_CONFIG = {
-  catalogo: 'http://localhost:3001',
-  pagos: 'http://localhost:3002',
-  inventario: 'http://localhost:3003',
-  compras: 'http://localhost:3004'
+  catalogo: process.env.CATALOGO_URL || 'http://localhost:3001',
+  pagos: process.env.PAGOS_URL || 'http://localhost:3002',
+  inventario: process.env.INVENTARIO_URL || 'http://localhost:3003',
+  compras: process.env.COMPRAS_URL || 'http://localhost:3004'
 } as const;
 
 export type ServiceName = keyof typeof SERVICES_CONFIG;
@@ -875,31 +1179,9 @@ export class MicroservicesService {
 
 ```typescript
 import { MicroservicesService } from './microservices.service';
-
-interface Producto {
-  id: number;
-  nombre: string;
-  precio: number;
-}
-
-interface TransaccionCompletada {
-  servicio: 'pagos' | 'inventario' | 'compras';
-  datos: any;
-}
-
-interface ResultadoSaga {
-  success: boolean;
-  message: string;
-  error?: string;
-  detalles: {
-    producto: string;
-    cantidad: number;
-    montoTotal?: number;
-    pagoId?: string;
-    compraId?: string;
-    transaccionesRevertidas?: number;
-  };
-}
+import { Producto } from '../../../shared/types/producto.types';
+import { TransaccionCompletada } from '../../../shared/types/transaccion.types';
+import { SagaResponse } from '../../../shared/types/response.types';
 
 /**
  * Servicio que implementa la lógica de la Saga
@@ -914,7 +1196,7 @@ export class SagaService {
   /**
    * Ejecuta la saga completa de compra
    */
-  async ejecutarSagaCompra(usuario: string, productoId: number, cantidad: number): Promise<ResultadoSaga> {
+  async ejecutarSagaCompra(usuario: string, productoId: number, cantidad: number): Promise<SagaResponse> {
     const transaccionesCompletadas: TransaccionCompletada[] = [];
     let producto: Producto | null = null;
     let pagoId: string | null = null;
@@ -1037,7 +1319,7 @@ export class SagaService {
   /**
    * Crea el resultado para una saga exitosa
    */
-  private crearResultadoExitoso(producto: Producto, cantidad: number, pagoId: string, compraId: string): ResultadoSaga {
+  private crearResultadoExitoso(producto: Producto, cantidad: number, pagoId: string, compraId: string): SagaResponse {
     return {
       success: true,
       message: 'Transacción completada exitosamente',
@@ -1059,7 +1341,7 @@ export class SagaService {
     cantidad: number,
     errorMessage: string,
     transaccionesRevertidas: number
-  ): ResultadoSaga {
+  ): SagaResponse {
     return {
       success: false,
       message: 'Transacción fallida - Todas las operaciones fueron revertidas',
@@ -1130,44 +1412,55 @@ export class SagaController {
 }
 ```
 
+### Archivo: `orquestador/src/routes/saga.routes.ts`
+
+```typescript
+import { Router } from 'express';
+import { SagaController } from '../controllers/saga.controller';
+
+/**
+ * Configuración de rutas del orquestador
+ */
+const router = Router();
+const sagaController = new SagaController();
+
+// Rutas del orquestador
+router.post('/comprar', sagaController.comprar);
+router.get('/health', sagaController.health);
+
+export default router;
+```
+
 ### Archivo: `orquestador/src/index.ts`
 
 ```typescript
 import express from 'express';
 import cors from 'cors';
-import { SagaController } from './controllers/saga.controller';
+import dotenv from 'dotenv';
+import sagaRoutes from './routes/saga.routes';
+
+// Cargar variables de entorno
+dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Inicializar controlador
-const sagaController = new SagaController();
-
 // Rutas
-app.post('/comprar', sagaController.comprar);
-app.get('/health', sagaController.health);
+app.use('/', sagaRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log('\n========================================');
-  console.log(`🎯 [ORQUESTADOR] Corriendo en puerto ${PORT}`);
+  console.log(`🎯 [${process.env.SERVICE_NAME}] Corriendo en puerto ${PORT}`);
   console.log('========================================\n');
   console.log('Endpoints disponibles:');
   console.log(`  POST http://localhost:${PORT}/comprar`);
   console.log(`  GET  http://localhost:${PORT}/health\n`);
 });
-```
-
-### Instalar dependencia adicional en el orquestador:
-
-```bash
-cd orquestador
-npm install axios
-npm install -D @types/axios
 ```
 
 ---
@@ -1824,15 +2117,22 @@ Cliente          Orquestador       Catálogo    Pagos    Inventario    Compras
 
 ## Resumen de Implementación
 
-✅ **Carpeta `shared/`** con utilidades comunes (aplicando DRY)  
+✅ **Carpeta `shared/`** con código compartido (DRY)
+   - `shared/types/` → Tipos TypeScript reutilizables (Producto, Transaccion, Response)
+   - `shared/utils/` → Utilidades comunes (LatenciaUtil)  
+✅ **Variables de entorno (.env)** en cada microservicio
+   - Configuración independiente por servicio
+   - No hardcodear puertos ni URLs  
 ✅ **4 microservicios independientes** (Catálogo, Pagos, Inventario, Compras)  
 ✅ **1 orquestador** que coordina el flujo  
 ✅ **Arquitectura en capas** (Controllers, Services, Config)  
+✅ **Type Safety** con TypeScript en todo el sistema  
 ✅ **Respuestas aleatorias** en pagos, inventario y compras  
 ✅ **Compensaciones automáticas** en caso de fallo  
-✅ **Simulación de latencia** para realismo (código compartido)  
+✅ **Simulación de latencia** para realismo  
 ✅ **Logs detallados** para seguimiento  
 ✅ **Respuesta clara al cliente** (éxito o fallo)  
 ✅ **Principios SOLID** aplicados en toda la arquitectura  
+✅ **Servicios Stateless** (sin memoria entre peticiones)
 
-El sistema cumple completamente con los requisitos de la consigna sin agregar funcionalidades extras, y además sigue las mejores prácticas de desarrollo con código limpio y sin duplicación.
+El sistema cumple completamente con los requisitos de la consigna sin agregar funcionalidades extras, y además sigue las mejores prácticas de desarrollo con código limpio, sin duplicación y fuertemente tipado.
