@@ -16,8 +16,4 @@ export class InventarioService {
   compensarStock(productoId: number, Stock: number): void {
     console.log(`[ms-inventario] Compensación ejecutada: Stock restaurado - Producto ${productoId} + ${Stock}`);
   }
-
-  // generarStockRestante(): number {
-  //   return Math.floor(Math.random() * 50) + 10;
-  // }
 }
