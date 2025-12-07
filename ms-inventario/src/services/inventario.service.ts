@@ -1,19 +1,19 @@
 
 export class InventarioService {
 
-  actualizarStock(productoId: number, Stock: number): boolean {
+  actualizarStock(productoId: number, stock: number): boolean {
 
     const existeStock = Math.random() > 0.4;
 
     if (existeStock) {
-      console.log(`[ms-inventario] Stock actualizado: Producto ${productoId} - Stock: ${Stock}`);
+      console.log(`[ms-inventario] stock actualizado: Producto ${productoId} - stock: ${stock}`);
     } else {
       console.log(`[ms-inventario] in stock: Producto ${productoId}`);
     }
     return existeStock;
   }
 
-  compensarStock(productoId: number, Stock: number): void {
-    console.log(`[ms-inventario] Compensación ejecutada: Stock restaurado - Producto ${productoId} + ${Stock}`);
+  compensarStock(productoId: number, stock: number): void {
+    console.log(`[ms-inventario] Compensación ejecutada: stock restaurado - Producto ${productoId} + ${stock}`);
   }
 }
