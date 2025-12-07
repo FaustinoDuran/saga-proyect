@@ -1,6 +1,4 @@
-/**
- * Tipos relacionados con productos
- */
+
 export interface Producto {
   id: number;
   nombre: string;
