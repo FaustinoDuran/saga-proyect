@@ -1,6 +1,4 @@
-/**
- * Tipos relacionados con transacciones
- */
+
 export interface TransaccionPago {
   transaccionId: string;
   monto: number;
