@@ -1,4 +1,4 @@
-import { Producto } from "@shared/types/producto.types";
+import { Producto } from '../../../shared/types/producto.types';
 
 export class CatalogoService { 
     private productos: Producto[] = [
@@ -20,7 +20,7 @@ export class CatalogoService {
     };
   }
 
-  obtenerPorductoPorId(id:number): Producto{
+  obtenerProductoPorId(id: number): Producto {
     return this.obtenerProductoAleatorio();
   }
 

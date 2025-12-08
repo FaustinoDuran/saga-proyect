@@ -17,8 +17,8 @@ export class CompraService {
         return `COMP-${Date.now()}`;
     }
     
-    compensarCompra(compraId: string):void {
-        console.log('[ms-compras] Compensación ejecutada: Compra cancelada - ID: ${compraId}')
+    compensarCompra(compraId: string, usuario: string): void {
+        console.log(`[ms-compras] 🔄 Compensación ejecutada: Compra cancelada - ID: ${compraId}`);
     }
 
 }

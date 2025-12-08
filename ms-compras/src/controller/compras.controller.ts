@@ -48,23 +48,21 @@ export class CompraController {
             await LatenciaUtil.simular();
             const { compraId, usuario } = req.body;
 
-            this.compraService.compensarCompra(compraId);
+            this.compraService.compensarCompra(compraId, usuario);
 
             res.status(200).json({
-                succes:true,
+                success: true,
                 message: 'Compra cancelada exitosamente',
                 compraId,
                 usuario,
-                timeStamp: new Date().toISOString()
+                timestamp: new Date().toISOString()
             });
-            }
-            catch (error) {
-                console.log('[ms-compras] Error en compensación', error)
-                res.status(500).json({
-                    succes: false,
-                    message:'Error del servidor'
-                });
-            }
-            
+        } catch (error) {
+            console.error('[ms-compras] Error en compensación:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor'
+            });
         }
+    };
     }
