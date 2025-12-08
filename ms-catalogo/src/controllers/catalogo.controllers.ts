@@ -13,11 +13,11 @@ export class CatalogoController {
         this.catalogoService = new CatalogoService();
     }
 
-    async obtenerProducto( req:Request , res:Response ):Promise<void>{
+    obtenerProducto = async (req: Request, res: Response): Promise<void> => {
         try {
             await LatenciaUtil.simular();
             const { id } = req.params;
-            const producto: Producto = id? this.catalogoService.obtenerPorductoPorId(Number(id)) : this.catalogoService.obtenerProductoAleatorio();
+            const producto: Producto = id ? this.catalogoService.obtenerProductoPorId(Number(id)) : this.catalogoService.obtenerProductoAleatorio();
             console.log(`ms-catalogo: producto colicitado: ${producto.nombre}`);
 
             const response: ApiResponse<Producto> = {

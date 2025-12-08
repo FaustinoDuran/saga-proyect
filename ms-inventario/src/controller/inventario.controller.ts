@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { InventarioService } from "../services/inventario.service";
-import { LatenciaUtil } from "@shared/utils/latencia.util";
+import { LatenciaUtil } from '../../../shared/utils/latencia.util';
 
 
 export class InventarioController {
@@ -11,58 +11,69 @@ export class InventarioController {
         this.inventarioService = new InventarioService();
     }
 
-    procesarActualizacion = async (req: Request, res: Response): Promise<void> => {
+    /**
+     * Endpoint para actualizar el inventario
+     * Retorna 200 o 409 aleatoriamente
+     */
+    procesarTransaccion = async (req: Request, res: Response): Promise<void> => {
         try {
             await LatenciaUtil.simular();
-            const {productoId, stock} = req.body;
-            const exito = this.inventarioService.actualizarStock(productoId, stock);
-        
-            if (exito) {
-                res.status(200).json ({
-                    succes:true,
-                    message:'Se actualizo el stock correctamente',
+            const { productoId, cantidad } = req.body;
+            
+            const hayStock = this.inventarioService.actualizarStock(productoId, cantidad);
+            
+            if (hayStock) {
+                res.status(200).json({
+                    success: true,
+                    message: 'Inventario actualizado exitosamente',
                     productoId,
-                    stock
-            });
-        }   else {
-                res.status(409).json ({
-                    succes:false,
-                    message:'No se pudo actualizar el stock correctamente',
-                    timeStamp: new Date().toISOString()
+                    cantidadDescontada: cantidad,
+                    stockRestante: this.inventarioService.generarStockRestante(),
+                    timestamp: new Date().toISOString()
                 });
-            };
-        }
-        catch (error) {
-            console.error('[ms-compras] Error:', error);
+            } else {
+                res.status(409).json({
+                    success: false,
+                    message: 'Stock insuficiente - No se puede procesar la compra',
+                    productoId,
+                    stockDisponible: 0,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        } catch (error) {
+            console.error('[ms-inventario] Error:', error);
             res.status(500).json({
-                success:false,
-                message:'Error interno del servidor',
+                success: false,
+                message: 'Error interno del servidor'
+            });
+        }
+    };
+
+    /**
+     * Endpoint para compensar (restaurar stock)
+     * Siempre retorna 200
+     */
+    compensar = async (req: Request, res: Response): Promise<void> => {
+        try {
+            await LatenciaUtil.simular();
+            
+            const { productoId, cantidad } = req.body;
+            
+            this.inventarioService.compensarStock(productoId, cantidad);
+            
+            res.status(200).json({
+                success: true,
+                message: 'Stock restaurado exitosamente',
+                productoId,
+                cantidadRestaurada: cantidad,
                 timestamp: new Date().toISOString()
             });
-        }
-    }
-
-    compensarActualizacion = async (res: Response, req: Request): Promise<void> => {
-        try {
-            await LatenciaUtil.simular();
-            const {productoId, stock} = req.body;
-
-            this.inventarioService.compensarStock(productoId, stock);
-
-            res.status(200).json({
-                succes: true,
-                message: 'Stock compensado exitosamente',
-                productoId,
-                stock
-            });
-        }
-        catch (error) {
-            console.log('[ms-inventario] Error en compensación', error)
+        } catch (error) {
+            console.error('[ms-inventario] Error en compensación:', error);
             res.status(500).json({
-                succes:false,
-                message:'Error del servidor'
+                success: false,
+                message: 'Error interno del servidor'
             });
         }
-        
-    }
+    };
 }
