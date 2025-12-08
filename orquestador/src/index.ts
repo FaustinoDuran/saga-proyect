@@ -56,12 +56,23 @@ const server = app.listen(PORT, () => {
   console.log(`  GET  http://localhost:${PORT}/health\n`);
 });
 
-// Manejar cierre del servidor
+// Manejar errores del servidor
 server.on('error', (error: any) => {
   if (error.code === 'EADDRINUSE') {
     console.error(`❌ Error: El puerto ${PORT} ya está en uso`);
+    console.error('💡 Solución: Cierra la otra instancia o cambia el puerto en .env');
+    process.exit(1);
   } else {
     console.error('[Orquestador] Error del servidor:', error);
   }
+});
+
+// Mantener el proceso vivo
+process.on('SIGTERM', () => {
+  console.log('[Orquestador] SIGTERM recibido, cerrando servidor...');
+  server.close(() => {
+    console.log('[Orquestador] Servidor cerrado');
+    process.exit(0);
+  });
 });
 

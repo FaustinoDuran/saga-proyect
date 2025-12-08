@@ -10,27 +10,10 @@ export class MicroservicesService {
    */
   async obtenerProducto(productoId: number) {
     try {
-      const url = `${SERVICES_CONFIG.catalogo}/producto/${productoId}`;
-      console.log(`[MicroservicesService] Llamando a: ${url}`);
-      const response = await axios.get(url);
-      console.log(`[MicroservicesService] Respuesta recibida:`, response.status, response.data);
-      
-      if (response.data && response.data.data) {
-        return response.data.data;
-      } else {
-        throw new Error('La respuesta del catálogo no tiene la estructura esperada');
-      }
+      const response = await axios.get(`${SERVICES_CONFIG.catalogo}/producto/${productoId}`);
+      return response.data.data;
     } catch (error: any) {
-      if (error.code === 'ECONNREFUSED') {
-        console.error(`[MicroservicesService] Error de conexión: No se puede conectar a ${SERVICES_CONFIG.catalogo}`);
-        throw new Error(`El microservicio de catálogo no está disponible en ${SERVICES_CONFIG.catalogo}`);
-      } else if (error.response) {
-        console.error(`[MicroservicesService] Error HTTP ${error.response.status}:`, error.response.data);
-        throw new Error(`Error al obtener producto: ${error.response.status} - ${error.response.statusText}`);
-      } else {
-        console.error('[MicroservicesService] Error desconocido:', error.message);
-        throw new Error(`Error al obtener producto del catálogo: ${error.message}`);
-      }
+      throw new Error('Error al obtener producto del catálogo');
     }
   }
 

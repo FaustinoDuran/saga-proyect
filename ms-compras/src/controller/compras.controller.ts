@@ -13,7 +13,7 @@ export class CompraController {
         try {
             await LatenciaUtil.simular();
             const { usuario, productoId, cantidad, monto } = req.body;
-            const exito = this.compraService.registrarCompra(usuario, productoId, cantidad, monto)
+            const exito = this.compraService.registrarCompra(usuario, productoId, cantidad, monto);
 
             if (exito) { 
                 res.status(200).json({
@@ -65,4 +65,4 @@ export class CompraController {
             });
         }
     };
-    }
+}

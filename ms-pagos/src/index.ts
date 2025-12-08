@@ -16,8 +16,26 @@ app.use(express.json());
 // Rutas
 app.use('/', pagosRoutes);
 
+// Manejar errores no capturados
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[ms-pagos] Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[ms-pagos] Uncaught Exception:', error);
+});
+
 // Iniciar servidor
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✅ [${process.env.SERVICE_NAME}] Corriendo en puerto ${PORT}`);
+});
+
+server.on('error', (error: any) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Error: El puerto ${PORT} ya está en uso`);
+    process.exit(1);
+  } else {
+    console.error('[ms-pagos] Error del servidor:', error);
+  }
 });
 

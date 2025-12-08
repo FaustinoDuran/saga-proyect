@@ -18,8 +18,6 @@ export class SagaController {
     try {
       const { usuario, productoId, cantidad } = req.body;
 
-      console.log('[Orquestador] Recibida petición:', { usuario, productoId, cantidad });
-
       // Validación básica
       if (!usuario || !productoId || !cantidad) {
         res.status(400).json({
