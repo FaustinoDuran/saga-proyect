@@ -11,7 +11,6 @@ export class SagaController {
 
   comprar = async (req: Request, res: Response): Promise<void> => {
     try {
-      // Validar que req.body existe y es un objeto
       if (!req.body || typeof req.body !== 'object') {
         console.error('[Orquestador] req.body es undefined o inválido');
         console.error('[Orquestador] Content-Type recibido:', req.get('Content-Type'));

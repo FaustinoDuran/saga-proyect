@@ -145,3 +145,13 @@ npm run dev
 }
 ```
 
+### ⚠️ Error de Validación (HTTP 400)
+```json
+{
+  "success": false,
+  "message": "El cuerpo de la petición está vacío o no es válido. Asegúrate de enviar Content-Type: application/json y un body JSON válido",
+  "hint": "En Postman, selecciona \"Body\" > \"raw\" > \"JSON\" y envía: {\"usuario\": \"juan123\", \"productoId\": 1, \"cantidad\": 2}"
+}
+```
+
+
