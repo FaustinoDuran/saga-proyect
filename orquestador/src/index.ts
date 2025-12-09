@@ -8,11 +8,26 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middlewares en orden correcto
 app.use(cors());
-app.use(express.json());
 
+// Body parser - debe ir antes de las rutas
+app.use(express.json({ 
+  limit: '10mb',
+  strict: true 
+}));
+app.use(express.urlencoded({ 
+  extended: true,
+  limit: '10mb'
+}));
+
+// Middleware de logging (después del body parser)
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    console.log(`[Orquestador] Content-Type: ${req.get('Content-Type')}`);
+    console.log(`[Orquestador] Body recibido:`, JSON.stringify(req.body, null, 2));
+  }
   next();
 });
 

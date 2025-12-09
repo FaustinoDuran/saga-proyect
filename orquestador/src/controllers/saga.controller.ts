@@ -11,12 +11,26 @@ export class SagaController {
 
   comprar = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { usuario, productoId, cantidad } = req.body;
-
-      if (!usuario || !productoId || !cantidad) {
+      // Validar que req.body existe y es un objeto
+      if (!req.body || typeof req.body !== 'object') {
+        console.error('[Orquestador] req.body es undefined o inválido');
+        console.error('[Orquestador] Content-Type recibido:', req.get('Content-Type'));
+        console.error('[Orquestador] Body raw:', req.body);
         res.status(400).json({
           success: false,
-          message: 'Faltan parámetros: usuario, productoId, cantidad'
+          message: 'El cuerpo de la petición está vacío o no es válido. Asegúrate de enviar Content-Type: application/json y un body JSON válido',
+          hint: 'En Postman, selecciona "Body" > "raw" > "JSON" y envía: {"usuario": "juan123", "productoId": 1, "cantidad": 2}'
+        });
+        return;
+      }
+
+      const { usuario, productoId, cantidad } = req.body;
+
+      if (!usuario || productoId === undefined || cantidad === undefined) {
+        res.status(400).json({
+          success: false,
+          message: 'Faltan parámetros: usuario, productoId, cantidad',
+          recibido: req.body
         });
         return;
       }
@@ -39,9 +53,6 @@ export class SagaController {
     }
   };
 
-  /**
-   * Endpoint de health check
-   */
   health = (req: Request, res: Response): void => {
     res.json({ status: 'OK', service: 'Orquestador Saga' });
   };
