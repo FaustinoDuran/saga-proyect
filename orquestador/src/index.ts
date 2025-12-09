@@ -3,26 +3,36 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import sagaRoutes from './routes/saga.routes';
 
-// Cargar variables de entorno
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
+// Middlewares en orden correcto
 app.use(cors());
-app.use(express.json());
 
-// Middleware de logging
+// Body parser - debe ir antes de las rutas
+app.use(express.json({ 
+  limit: '10mb',
+  strict: true 
+}));
+app.use(express.urlencoded({ 
+  extended: true,
+  limit: '10mb'
+}));
+
+// Middleware de logging (después del body parser)
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    console.log(`[Orquestador] Content-Type: ${req.get('Content-Type')}`);
+    console.log(`[Orquestador] Body recibido:`, JSON.stringify(req.body, null, 2));
+  }
   next();
 });
 
-// Rutas
 app.use('/', sagaRoutes);
 
-// Manejador de errores global
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('[Orquestador] Error no manejado:', err);
   if (!res.headersSent) {
@@ -34,19 +44,15 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   }
 });
 
-// Manejar errores no capturados ANTES de iniciar el servidor
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Orquestador] Unhandled Rejection at:', promise, 'reason:', reason);
-  // No hacer exit para que el servidor siga corriendo
 });
 
 process.on('uncaughtException', (error) => {
   console.error('[Orquestador] Uncaught Exception:', error);
   console.error('[Orquestador] Stack:', error.stack);
-  // No hacer exit inmediatamente, dejar que el servidor intente continuar
 });
 
-// Iniciar servidor
 const server = app.listen(PORT, () => {
   console.log('\n========================================');
   console.log(`🎯 [${process.env.SERVICE_NAME}] Corriendo en puerto ${PORT}`);
@@ -56,7 +62,6 @@ const server = app.listen(PORT, () => {
   console.log(`  GET  http://localhost:${PORT}/health\n`);
 });
 
-// Manejar errores del servidor
 server.on('error', (error: any) => {
   if (error.code === 'EADDRINUSE') {
     console.error(`❌ Error: El puerto ${PORT} ya está en uso`);
@@ -67,7 +72,6 @@ server.on('error', (error: any) => {
   }
 });
 
-// Mantener el proceso vivo
 process.on('SIGTERM', () => {
   console.log('[Orquestador] SIGTERM recibido, cerrando servidor...');
   server.close(() => {

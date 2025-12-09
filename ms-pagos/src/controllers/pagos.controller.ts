@@ -2,9 +2,6 @@ import { Request, Response } from 'express';
 import { PagosService } from '../services/pagos.service';
 import { LatenciaUtil } from '../../../shared/utils/latencia.util';
 
-/**
- * Controlador que maneja las peticiones HTTP de pagos
- */
 export class PagosController {
   private pagosService: PagosService;
 
@@ -12,10 +9,6 @@ export class PagosController {
     this.pagosService = new PagosService();
   }
 
-  /**
-   * Endpoint para procesar una transacción de pago
-   * Retorna 200 o 409 aleatoriamente
-   */
   procesarTransaccion = async (req: Request, res: Response): Promise<void> => {
     try {
       await LatenciaUtil.simular();
@@ -48,10 +41,6 @@ export class PagosController {
     }
   };
 
-  /**
-   * Endpoint para compensar (reembolsar) un pago
-   * Siempre retorna 200
-   */
   compensar = async (req: Request, res: Response): Promise<void> => {
     try {
       await LatenciaUtil.simular();

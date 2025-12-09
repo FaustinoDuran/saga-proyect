@@ -3,9 +3,6 @@ import { Producto } from '../../../shared/types/producto.types';
 import { TransaccionCompletada } from '../../../shared/types/transaccion.types';
 import { SagaResponse } from '../../../shared/types/response.types';
 
-/**
- * Servicio que implementa la lógica de la Saga
- */
 export class SagaService {
   private microservicesService: MicroservicesService;
 
@@ -13,9 +10,6 @@ export class SagaService {
     this.microservicesService = new MicroservicesService();
   }
 
-  /**
-   * Ejecuta la saga completa de compra
-   */
   async ejecutarSagaCompra(usuario: string, productoId: number, cantidad: number): Promise<SagaResponse> {
     const transaccionesCompletadas: TransaccionCompletada[] = [];
     let producto: Producto | null = null;
@@ -69,9 +63,6 @@ export class SagaService {
     }
   }
 
-  /**
-   * Paso 1: Obtener producto
-   */
   private async ejecutarPasoProducto(productoId: number): Promise<Producto> {
     console.log('📦 PASO 1: Obteniendo información del producto...');
     const producto = await this.microservicesService.obtenerProducto(productoId);
@@ -79,9 +70,7 @@ export class SagaService {
     return producto;
   }
 
-  /**
-   * Paso 2: Procesar pago
-   */
+
   private async ejecutarPasoPago(producto: Producto, cantidad: number, usuario: string): Promise<string> {
     console.log('💳 PASO 2: Procesando pago...');
     const pagoId = await this.microservicesService.procesarPago(producto.precio * cantidad, usuario);
@@ -89,18 +78,14 @@ export class SagaService {
     return pagoId;
   }
 
-  /**
-   * Paso 3: Actualizar inventario
-   */
+
   private async ejecutarPasoInventario(productoId: number, cantidad: number): Promise<void> {
     console.log('📊 PASO 3: Actualizando inventario...');
     await this.microservicesService.actualizarInventario(productoId, cantidad);
     console.log(`✅ Inventario actualizado\n`);
   }
 
-  /**
-   * Paso 4: Registrar compra
-   */
+
   private async ejecutarPasoCompra(usuario: string, producto: Producto, cantidad: number): Promise<string> {
     console.log('📝 PASO 4: Registrando compra...');
     const compraId = await this.microservicesService.registrarCompra(
@@ -113,9 +98,7 @@ export class SagaService {
     return compraId;
   }
 
-  /**
-   * Ejecuta las compensaciones en orden inverso
-   */
+
   private async compensarTransacciones(transacciones: TransaccionCompletada[]): Promise<void> {
     console.log(`🔄 Ejecutando ${transacciones.length} compensación(es)...\n`);
 
@@ -136,9 +119,7 @@ export class SagaService {
     console.log('========================================\n');
   }
 
-  /**
-   * Crea el resultado para una saga exitosa
-   */
+ 
   private crearResultadoExitoso(producto: Producto, cantidad: number, pagoId: string, compraId: string): SagaResponse {
     return {
       success: true,
@@ -153,9 +134,6 @@ export class SagaService {
     };
   }
 
-  /**
-   * Crea el resultado para una saga fallida
-   */
   private crearResultadoFallido(
     producto: Producto | null,
     cantidad: number,

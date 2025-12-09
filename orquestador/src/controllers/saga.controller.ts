@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
 import { SagaService } from '../services/saga.service';
 
-/**
- * Controlador que maneja las peticiones HTTP del orquestador
- */
+
 export class SagaController {
   private sagaService: SagaService;
 
@@ -11,33 +9,40 @@ export class SagaController {
     this.sagaService = new SagaService();
   }
 
-  /**
-   * Endpoint principal que inicia la saga de compra
-   */
   comprar = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { usuario, productoId, cantidad } = req.body;
-
-      // Validación básica
-      if (!usuario || !productoId || !cantidad) {
+      // Validar que req.body existe y es un objeto
+      if (!req.body || typeof req.body !== 'object') {
+        console.error('[Orquestador] req.body es undefined o inválido');
+        console.error('[Orquestador] Content-Type recibido:', req.get('Content-Type'));
+        console.error('[Orquestador] Body raw:', req.body);
         res.status(400).json({
           success: false,
-          message: 'Faltan parámetros: usuario, productoId, cantidad'
+          message: 'El cuerpo de la petición está vacío o no es válido. Asegúrate de enviar Content-Type: application/json y un body JSON válido',
+          hint: 'En Postman, selecciona "Body" > "raw" > "JSON" y envía: {"usuario": "juan123", "productoId": 1, "cantidad": 2}'
         });
         return;
       }
 
-      // Ejecutar la saga
+      const { usuario, productoId, cantidad } = req.body;
+
+      if (!usuario || productoId === undefined || cantidad === undefined) {
+        res.status(400).json({
+          success: false,
+          message: 'Faltan parámetros: usuario, productoId, cantidad',
+          recibido: req.body
+        });
+        return;
+      }
+
       const resultado = await this.sagaService.ejecutarSagaCompra(usuario, productoId, cantidad);
 
-      // Retornar respuesta al cliente
       const statusCode = resultado.success ? 200 : 409;
       res.status(statusCode).json(resultado);
     } catch (error: any) {
       console.error('[Orquestador] Error inesperado:', error);
       console.error('[Orquestador] Stack:', error.stack);
       
-      // Asegurar que siempre se envía una respuesta
       if (!res.headersSent) {
         res.status(500).json({
           success: false,
@@ -48,9 +53,6 @@ export class SagaController {
     }
   };
 
-  /**
-   * Endpoint de health check
-   */
   health = (req: Request, res: Response): void => {
     res.json({ status: 'OK', service: 'Orquestador Saga' });
   };
