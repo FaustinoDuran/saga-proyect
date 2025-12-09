@@ -21,24 +21,20 @@ export class SagaService {
       console.log('🚀 INICIANDO SAGA DE COMPRA');
       console.log('========================================\n');
 
-      // PASO 1: Obtener producto del catálogo
       producto = await this.ejecutarPasoProducto(productoId);
 
-      // PASO 2: Procesar pago
       pagoId = await this.ejecutarPasoPago(producto, cantidad, usuario);
       transaccionesCompletadas.push({
         servicio: 'pagos',
         datos: { transaccionId: pagoId, monto: producto.precio * cantidad }
       });
 
-      // PASO 3: Actualizar inventario
       await this.ejecutarPasoInventario(producto.id, cantidad);
       transaccionesCompletadas.push({
         servicio: 'inventario',
         datos: { productoId: producto.id, cantidad }
       });
 
-      // PASO 4: Registrar compra
       compraId = await this.ejecutarPasoCompra(usuario, producto, cantidad);
       transaccionesCompletadas.push({
         servicio: 'compras',

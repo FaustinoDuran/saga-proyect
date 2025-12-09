@@ -3,20 +3,16 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import comprasRoutes from './routes/compras.routes';
 
-// Cargar variables de entorno
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3004;
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Rutas
 app.use('/', comprasRoutes);
 
-// Manejar errores no capturados
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[ms-compras] Unhandled Rejection:', reason);
 });
@@ -25,7 +21,6 @@ process.on('uncaughtException', (error) => {
   console.error('[ms-compras] Uncaught Exception:', error);
 });
 
-// Iniciar servidor
 const server = app.listen(PORT, () => {
   console.log(`✅ [${process.env.SERVICE_NAME}] Corriendo en puerto ${PORT}`);
 });
