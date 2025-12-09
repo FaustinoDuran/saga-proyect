@@ -10,11 +10,6 @@ export class InventarioController {
     constructor() {
         this.inventarioService = new InventarioService();
     }
-
-    /**
-     * Endpoint para actualizar el inventario
-     * Retorna 200 o 409 aleatoriamente
-     */
     procesarTransaccion = async (req: Request, res: Response): Promise<void> => {
         try {
             await LatenciaUtil.simular();
@@ -49,10 +44,6 @@ export class InventarioController {
         }
     };
 
-    /**
-     * Endpoint para compensar (restaurar stock)
-     * Siempre retorna 200
-     */
     compensar = async (req: Request, res: Response): Promise<void> => {
         try {
             await LatenciaUtil.simular();

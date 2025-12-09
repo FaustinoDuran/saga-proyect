@@ -1,5 +1,5 @@
 
-export class LatenciaUtil {     // Simula un delay aleatorio entre 500ms y 1500ms
+export class LatenciaUtil {    
   
 static async simular(): Promise<void> {
     const delay = Math.floor(Math.random() * 1000) + 500;

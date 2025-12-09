@@ -1,12 +1,7 @@
 import dotenv from 'dotenv';
 
-// Cargar variables de entorno
 dotenv.config();
 
-/**
- * Configuración centralizada de las URLs de los microservicios
- * Lee desde variables de entorno con valores por defecto
- */
 export const SERVICES_CONFIG = {
   catalogo: process.env.CATALOGO_URL || 'http://localhost:3001',
   pagos: process.env.PAGOS_URL || 'http://localhost:3002',
